@@ -233,8 +233,8 @@ test('should get the network details from web3', async (t) => {
   const testNetworkType = 'rinkeby'
   instance.web3 = {
     eth: {
+      getChainId: sinon.stub().resolves(testNetworkId),
       net: {
-        getId: sinon.stub().resolves(testNetworkId),
         getNetworkType: sinon.stub().resolves(testNetworkType)
       }
     }
@@ -1164,10 +1164,10 @@ test('should throw if no functions are found, when calculating the transaction p
     }
   ])
   // act
-  return instance.calculateTransactionPath(null, '0x789')
+  return instance.calculateTransactionPath(null, '0x789', 'signature')
     .catch(err => {
       // assert
-      t.is(err.message, 'No functions specified in artifact for 0x789')
+      t.is(err.message, 'No method named signature on 0x789')
       /*
        * Note: This test also "asserts" that the permissions object, the app object and the
        * forwarders array does not throw any errors when they are being extracted from their observables.
@@ -1178,7 +1178,7 @@ test('should throw if no functions are found, when calculating the transaction p
 test('should use normal transaction pathing when finding external transaction path for installed app', async (t) => {
   const { createAragon } = t.context
   const targetAddress = '0x123'
-  const targetMethodJsonDescription = [{ name: 'foo' }]
+  const targetMethodAbiFragment = [{ name: 'foo' }]
   const targetParams = [8]
   const mockPath = [{ to: '0x123', data: '0x456' }]
 
@@ -1199,16 +1199,16 @@ test('should use normal transaction pathing when finding external transaction pa
   ])
   instance.getTransactionPath = sinon.stub().returns(mockPath)
   // act
-  const externalPath = await instance.getExternalTransactionPath(targetAddress, targetMethodJsonDescription, targetParams)
+  const externalPath = await instance.getExternalTransactionPath(targetAddress, targetMethodAbiFragment, targetParams)
   // assert
   t.deepEqual(externalPath, mockPath)
-  t.true(instance.getTransactionPath.calledOnceWith(targetAddress, targetMethodJsonDescription.name, targetParams))
+  t.true(instance.getTransactionPath.calledOnceWith(targetAddress, targetMethodAbiFragment.name, targetParams))
 })
 
 test('should be able to find external transaction path for non-installed app', async (t) => {
   const { createAragon, utilsStub } = t.context
   const targetAddress = '0x123'
-  const targetMethodJsonDescription = [{ name: 'foo' }]
+  const targetMethodAbiFragment = [{ name: 'foo' }]
   const targetParams = [8]
   const mockTransaction = { to: targetAddress, data: '0x123' }
 
@@ -1230,7 +1230,7 @@ test('should be able to find external transaction path for non-installed app', a
   instance.describeTransactionPath = sinon.stub().returnsArg(0)
   utilsStub.transactions.createDirectTransaction = sinon.stub().returns(mockTransaction)
   // act
-  const externalPath = await instance.getExternalTransactionPath(targetAddress, targetMethodJsonDescription, targetParams)
+  const externalPath = await instance.getExternalTransactionPath(targetAddress, targetMethodAbiFragment, targetParams)
   // assert
   t.deepEqual(externalPath, [mockTransaction])
 })
@@ -1238,7 +1238,7 @@ test('should be able to find external transaction path for non-installed app', a
 test('should be able to find external transaction path for ACL', async (t) => {
   const { createAragon, utilsStub } = t.context
   const targetAddress = '0x123'
-  const targetMethodJsonDescription = [{ name: 'foo' }]
+  const targetMethodAbiFragment = [{ name: 'foo' }]
   const targetParams = [8]
   const mockPath = [{ to: '0x123', data: '0x123' }]
 
@@ -1260,10 +1260,10 @@ test('should be able to find external transaction path for ACL', async (t) => {
   utilsStub.addressesEqual = sinon.stub().returns(true)
   instance.getACLTransactionPath = sinon.stub().returns(mockPath)
   // act
-  const externalPath = await instance.getExternalTransactionPath(targetAddress, targetMethodJsonDescription, targetParams)
+  const externalPath = await instance.getExternalTransactionPath(targetAddress, targetMethodAbiFragment, targetParams)
   // assert
   t.deepEqual(externalPath, mockPath)
-  t.true(instance.getACLTransactionPath.calledOnceWith(targetMethodJsonDescription.name, targetParams))
+  t.true(instance.getACLTransactionPath.calledOnceWith(targetMethodAbiFragment.name, targetParams))
 })
 
 test('should run the app and reply to a request', async (t) => {
